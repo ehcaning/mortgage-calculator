@@ -14,6 +14,20 @@
       <!-- Input Form Section -->
       <div class="form-section">
         <h3>Loan Parameters</h3>
+        <p>
+          This page is completely offline and does not send your data to any servers. Nothing leaves your browser. Check
+          the source code on
+          <a href="https://github.com/ehcaning/mortgage-calculator">GitHub</a>.
+        </br>
+          Your data is stored in your
+          browser's <code>localstorage</code>. You can use the import/export buttons below for backing up your inputs.
+          <div class="btn-group" role="group" aria-label="Basic example">
+            <button class="btn btn-secondary" onclick="exportData()">Export</button>
+            <button class="btn btn-secondary" onclick="document.getElementById('importFileInput').click()">Import</button>
+          </div>
+        </p>
+        <input type="file" id="importFileInput" style="display: none" accept=".json" />
+        <hr>
         <div class="row g-4">
           <div class="col-md-6">
             <label for="loanAmount" class="form-label">Loan Amount ($)</label>
@@ -34,12 +48,12 @@
           <div class="col-md-6">
             <label for="extraMonth" class="form-label">Extra Payment Month</label>
             <select class="form-select" id="extraMonth">
-              <option value="1">January</option>
+              <option value="1" selected>January</option>
               <option value="2">February</option>
               <option value="3">March</option>
               <option value="4">April</option>
               <option value="5">May</option>
-              <option value="6" selected>June</option>
+              <option value="6">June</option>
               <option value="7">July</option>
               <option value="8">August</option>
               <option value="9">September</option>
@@ -135,6 +149,7 @@
           <table class="table table-sm mb-0">
             <thead>
               <tr>
+                <th>Paid</th>
                 <th>Date</th>
                 <th>Type</th>
                 <th>Payment</th>

@@ -189,11 +189,19 @@ function displayResults(results, loanAmount) {
   // Build table using the results with extra payments
   const tableBody = document.getElementById('paymentTable');
   tableBody.innerHTML = '';
-
-  results.calculations.forEach(row => {
+  const paidIndex = getPaidIndex();
+  let paidCheckboxIndex = 0;
+  results.calculations.forEach((row, index) => {
     const tr = document.createElement('tr');
     tr.className = row.type === 'Additional' ? 'type-additional' : 'type-monthly';
+    let checkbox = '';
+    if (row.type === 'Monthly') {
+      let checkboxState = paidIndex >= paidCheckboxIndex ? 'checked' : '';
+      checkbox = `<input class="form-check-input paid-check-boxes" type="checkbox" id="paid-${paidCheckboxIndex}" ${checkboxState} onClick="updatePaid(${paidCheckboxIndex})">`;
+      paidCheckboxIndex++;
+    }
     tr.innerHTML = `
+                    <td>${checkbox}</td>
                     <td>${row.date}</td>
                     <td><strong>${row.type}</strong></td>
                     <td>${formatCurrency(row.payment)}</td>
@@ -237,6 +245,20 @@ function loadFormData() {
   }
 }
 
+function savePaidIndex(index) {
+  localStorage.setItem('paidIndex', index);
+}
+
+function getPaidIndex() {
+  const index = localStorage.getItem('paidIndex');
+  return index === null ? -1 : index;
+}
+
+function updatePaid(index) {
+  savePaidIndex(index);
+  document.querySelectorAll('.paid-check-boxes').forEach((el, i) => (el.checked = i <= index));
+}
+
 // Allow Enter key to submit
 document.addEventListener('DOMContentLoaded', function () {
   // Load saved form data from localStorage
@@ -259,4 +281,40 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Initial calculation on page load
   calculateMortgage();
+});
+
+function exportData() {
+  const formData = JSON.parse(localStorage.getItem('mortgageFormData'));
+  const json = JSON.stringify({
+    inputs: formData,
+    paidIndex: getPaidIndex(),
+  });
+  const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(json);
+
+  const exportButton = document.createElement('a');
+  exportButton.setAttribute('href', dataUri);
+  exportButton.setAttribute('download', 'mortgage-calculator-data.json');
+  document.body.appendChild(exportButton);
+  exportButton.click();
+  document.body.removeChild(exportButton);
+}
+
+const importFileInput = document.getElementById('importFileInput');
+importFileInput.addEventListener('change', function (event) {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      try {
+        const fileContent = JSON.parse(e.target.result);
+        localStorage.setItem('mortgageFormData', JSON.stringify(fileContent.inputs));
+        savePaidIndex(fileContent.paidIndex);
+        loadFormData();
+        calculateMortgage();
+      } catch (error) {
+        alert('Error importing data: ' + error.message);
+      }
+    };
+    reader.readAsText(file);
+  }
 });
