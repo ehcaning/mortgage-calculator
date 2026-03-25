@@ -1,0 +1,116 @@
+body {
+  background-color: #f8f9fa;
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+}
+.container-main {
+  max-width: 1200px;
+}
+.card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+.form-section {
+  background-color: white;
+  border-radius: 8px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+.results-section {
+  background-color: white;
+  border-radius: 8px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  display: none;
+}
+.results-section.show {
+  display: block;
+}
+.stat-box {
+  background-color: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border-left: 4px solid #1f4788;
+  margin-bottom: 1rem;
+}
+.stat-label {
+  color: #6c757d;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+.stat-value {
+  color: #1f4788;
+  font-size: 1.8rem;
+  font-weight: bold;
+  margin-top: 0.5rem;
+}
+.table-container {
+  max-height: 600px;
+  overflow-y: auto;
+  margin-top: 2rem;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+}
+table {
+  font-size: 0.85rem;
+}
+thead {
+  background-color: #1f4788;
+  color: white;
+  position: sticky;
+  top: 0;
+}
+tbody tr:nth-child(even) {
+  background-color: #f8f9fa;
+}
+.type-monthly {
+  background-color: #ffffff;
+}
+.type-additional {
+  background-color: #fff4e6;
+}
+.btn-submit {
+  background-color: #1f4788;
+  border-color: #1f4788;
+  padding: 0.75rem 2rem;
+  font-weight: 600;
+}
+.btn-submit:hover {
+  background-color: #153d6b;
+  border-color: #153d6b;
+}
+h1 {
+  color: #1f4788;
+  margin-bottom: 2rem;
+  font-weight: bold;
+}
+h3 {
+  color: #1f4788;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+.loading {
+  display: none;
+  text-align: center;
+  padding: 2rem;
+}
+
+.scenario-section {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.scenario-section:last-child {
+  border-bottom: none;
+}
+
+.scenario-title {
+  color: #1f4788;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}

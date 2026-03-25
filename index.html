@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mortgage Calculator</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="style.css" rel="stylesheet" />
+  </head>
+  <body>
+    <div class="container container-main">
+      <h1 class="mb-4">💰 Mortgage Calculator</h1>
+
+      <!-- Input Form Section -->
+      <div class="form-section">
+        <h3>Loan Parameters</h3>
+        <div class="row g-4">
+          <div class="col-md-6">
+            <label for="loanAmount" class="form-label">Loan Amount ($)</label>
+            <input type="number" class="form-control" id="loanAmount" value="400000" min="1" step="1000" />
+          </div>
+          <div class="col-md-6">
+            <label for="interestRate" class="form-label">Interest Rate (%)</label>
+            <input type="number" class="form-control" id="interestRate" value="3.45" min="0" max="100" step="0.01" />
+          </div>
+          <div class="col-md-6">
+            <label for="monthlyPayment" class="form-label">Monthly Payment ($)</label>
+            <input type="number" class="form-control" id="monthlyPayment" value="2000" min="1" step="1" />
+          </div>
+          <div class="col-md-6">
+            <label for="annualExtra" class="form-label">Annual Extra Payment ($)</label>
+            <input type="number" class="form-control" id="annualExtra" value="3000" min="0" step="100" />
+          </div>
+          <div class="col-md-6">
+            <label for="extraMonth" class="form-label">Extra Payment Month</label>
+            <select class="form-select" id="extraMonth">
+              <option value="1">January</option>
+              <option value="2">February</option>
+              <option value="3">March</option>
+              <option value="4">April</option>
+              <option value="5">May</option>
+              <option value="6" selected>June</option>
+              <option value="7">July</option>
+              <option value="8">August</option>
+              <option value="9">September</option>
+              <option value="10">October</option>
+              <option value="11">November</option>
+              <option value="12">December</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label for="extraPaymentCount" class="form-label">Extra Payment Count (-1 = unlimited)</label>
+            <input type="number" class="form-control" id="extraPaymentCount" value="-1" step="1" />
+          </div>
+        </div>
+        <button class="btn btn-primary btn-submit mt-4" onclick="calculateMortgage()">Calculate</button>
+      </div>
+
+      <!-- Loading Indicator -->
+      <div class="loading" id="loading">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Calculating...</span>
+        </div>
+        <p class="mt-2">Calculating mortgage details...</p>
+      </div>
+
+      <!-- Results Section -->
+      <div class="results-section" id="resultsSection">
+        <h3>Summary</h3>
+
+        <!-- With Extra Payments Row -->
+        <div id="withExtraSection" class="scenario-section" style="display: none">
+          <h5 class="scenario-title">With Extra Payments</h5>
+          <div class="row">
+            <div class="col-lg-3 col-md-6">
+              <div class="stat-box">
+                <div class="stat-label">Total Duration</div>
+                <div class="stat-value" id="withExtraDuration">-</div>
+              </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+              <div class="stat-box">
+                <div class="stat-label">Total Paid</div>
+                <div class="stat-value" id="withExtraTotalPaid">-</div>
+              </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+              <div class="stat-box">
+                <div class="stat-label">Total Paid Interest</div>
+                <div class="stat-value" id="withExtraInterest">-</div>
+              </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+              <div class="stat-box">
+                <div class="stat-label">Payoff Date</div>
+                <div class="stat-value" id="withExtraPayoffDate">-</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Without Extra Payments Row -->
+        <div id="withoutExtraSection" class="scenario-section">
+          <h5 class="scenario-title">Without Extra Payments</h5>
+          <div class="row">
+            <div class="col-lg-3 col-md-6">
+              <div class="stat-box">
+                <div class="stat-label">Total Duration</div>
+                <div class="stat-value" id="withoutExtraDuration">-</div>
+              </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+              <div class="stat-box">
+                <div class="stat-label">Total Paid</div>
+                <div class="stat-value" id="withoutExtraTotalPaid">-</div>
+              </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+              <div class="stat-box">
+                <div class="stat-label">Total Paid Interest</div>
+                <div class="stat-value" id="withoutExtraInterest">-</div>
+              </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+              <div class="stat-box">
+                <div class="stat-label">Payoff Date</div>
+                <div class="stat-value" id="withoutExtraPayoffDate">-</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h3>Detailed Payment Schedule</h3>
+        <div class="table-container">
+          <table class="table table-sm mb-0">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Payment</th>
+                <th>Interest</th>
+                <th>Principal</th>
+                <th>Balance</th>
+                <th>Cumulative Interest</th>
+                <th>Cumulative Principal</th>
+                <th>% Paid</th>
+              </tr>
+            </thead>
+            <tbody id="paymentTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
