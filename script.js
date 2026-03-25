@@ -150,9 +150,8 @@ function displayResults(results, loanAmount) {
     results.payoffDate.getFullYear() + '-' + String(results.payoffDate.getMonth() + 1).padStart(2, '0');
 
   document.getElementById('withExtraDuration').textContent = `${withExtraYears}y ${withExtraMonths}m`;
-  document.getElementById('withExtraTotalPaid').textContent = formatCurrency(loanAmount + results.totalInterestPaid);
-  document.getElementById('withExtraInterest').textContent = formatCurrency(results.totalInterestPaid);
-  document.getElementById('withExtraPayoffDate').textContent = withExtraDateStr;
+  const withExtraTotalPaid = loanAmount + results.totalInterestPaid;
+  const withExtraInterest = results.totalInterestPaid;
 
   // Calculate scenario without extra payments
   const withoutExtraResults = performCalculation(
@@ -166,16 +165,32 @@ function displayResults(results, loanAmount) {
 
   const withoutExtraYears = Math.floor(withoutExtraResults.totalMonths / 12);
   const withoutExtraMonths = withoutExtraResults.totalMonths % 12;
+  const withoutExtraTotalPaid = loanAmount + withoutExtraResults.totalInterestPaid;
+  const withoutExtraInterest = withoutExtraResults.totalInterestPaid;
   const withoutExtraDateStr =
     withoutExtraResults.payoffDate.getFullYear() +
     '-' +
     String(withoutExtraResults.payoffDate.getMonth() + 1).padStart(2, '0');
 
+  const durationDiff = withoutExtraYears * 12 + withoutExtraMonths - results.totalMonths;
+  const yearsDiff = Math.floor(durationDiff / 12);
+  const monthsDiff = durationDiff % 12;
+  const totalPaidDiff = withoutExtraTotalPaid - withExtraTotalPaid;
+  const interestDiff = withoutExtraInterest - withExtraInterest;
+
+  document.getElementById('withExtraDuration').textContent = `${withExtraYears}y ${withExtraMonths}m`;
+  document.getElementById('withExtraTotalPaid').textContent = formatCurrency(withExtraTotalPaid);
+  document.getElementById('withExtraInterest').textContent = formatCurrency(withExtraInterest);
+  document.getElementById('withExtraPayoffDate').textContent = withExtraDateStr;
+
+  document.getElementById('withExtraDurationDiff').textContent = `(${yearsDiff}y ${monthsDiff}m faster)`;
+  document.getElementById('withExtraTotalPaidDiff').textContent = `(${formatCurrency(totalPaidDiff)} less)`;
+  document.getElementById('withExtraInterestDiff').textContent = `(${formatCurrency(interestDiff)} less)`;
+  document.getElementById('withExtraPayoffDateDiff').textContent = `(${yearsDiff}y ${monthsDiff}m faster)`;
+
   document.getElementById('withoutExtraDuration').textContent = `${withoutExtraYears}y ${withoutExtraMonths}m`;
-  document.getElementById('withoutExtraTotalPaid').textContent = formatCurrency(
-    loanAmount + withoutExtraResults.totalInterestPaid,
-  );
-  document.getElementById('withoutExtraInterest').textContent = formatCurrency(withoutExtraResults.totalInterestPaid);
+  document.getElementById('withoutExtraTotalPaid').textContent = formatCurrency(withoutExtraTotalPaid);
+  document.getElementById('withoutExtraInterest').textContent = formatCurrency(withoutExtraInterest);
   document.getElementById('withoutExtraPayoffDate').textContent = withoutExtraDateStr;
 
   // Show/hide the "with extra payments" section
