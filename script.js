@@ -1,42 +1,238 @@
+// --- Formatters ---
+
+const CURRENCY_FORMAT = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
 function formatCurrency(value) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
+  return CURRENCY_FORMAT.format(value);
 }
 
-function calculateMortgage() {
-  const loanAmount = parseFloat(document.getElementById('loanAmount').value);
-  const interestRate = parseFloat(document.getElementById('interestRate').value);
-  const monthlyPayment = parseFloat(document.getElementById('monthlyPayment').value);
-  const annualExtra = parseFloat(document.getElementById('annualExtra').value);
-  const extraMonth = parseInt(document.getElementById('extraMonth').value);
-  const extraPaymentCount = parseInt(document.getElementById('extraPaymentCount').value);
+function formatYearMonth(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
 
-  // Validation
-  if (!loanAmount || !interestRate || !monthlyPayment) {
+function formatDuration(totalMonths) {
+  return `${Math.floor(totalMonths / 12)}y ${totalMonths % 12}m`;
+}
+
+// --- Form I/O ---
+
+function readFormInputs() {
+  return {
+    loanAmount: parseFloat(document.getElementById('loanAmount').value),
+    interestRate: parseFloat(document.getElementById('interestRate').value),
+    monthlyPayment: parseFloat(document.getElementById('monthlyPayment').value),
+    annualExtra: parseFloat(document.getElementById('annualExtra').value),
+    extraMonth: parseInt(document.getElementById('extraMonth').value, 10),
+    extraPaymentCount: parseInt(document.getElementById('extraPaymentCount').value, 10),
+    startDate: new Date(
+      parseInt(document.getElementById('startYear').value, 10),
+      parseInt(document.getElementById('startMonth').value, 10) - 1,
+      1,
+    ),
+  };
+}
+
+function saveFormData() {
+  const data = {
+    loanAmount: document.getElementById('loanAmount').value,
+    interestRate: document.getElementById('interestRate').value,
+    monthlyPayment: document.getElementById('monthlyPayment').value,
+    annualExtra: document.getElementById('annualExtra').value,
+    extraMonth: document.getElementById('extraMonth').value,
+    extraPaymentCount: document.getElementById('extraPaymentCount').value,
+    startMonth: document.getElementById('startMonth').value,
+    startYear: document.getElementById('startYear').value,
+  };
+  localStorage.setItem('mortgageFormData', JSON.stringify(data));
+}
+
+function loadFormData() {
+  const raw = localStorage.getItem('mortgageFormData');
+  if (!raw) return;
+
+  const data = JSON.parse(raw);
+  const setField = (id, key, fallback) => {
+    document.getElementById(id).value = data[key] ?? fallback;
+  };
+
+  setField('loanAmount', 'loanAmount', '400000');
+  setField('interestRate', 'interestRate', '3.45');
+  setField('monthlyPayment', 'monthlyPayment', '2000');
+  setField('annualExtra', 'annualExtra', '3000');
+  setField('extraMonth', 'extraMonth', '6');
+  setField('extraPaymentCount', 'extraPaymentCount', '-1');
+  if (data.startMonth) setField('startMonth', 'startMonth', null);
+  if (data.startYear) setField('startYear', 'startYear', null);
+}
+
+// --- Paid tracking ---
+
+function savePaidIndex(index) {
+  localStorage.setItem('paidIndex', index);
+}
+
+function getPaidIndex() {
+  return parseInt(localStorage.getItem('paidIndex') ?? '-1', 10);
+}
+
+function updatePaid(index) {
+  savePaidIndex(index);
+  document.querySelectorAll('.paid-check-boxes').forEach((el, i) => (el.checked = i <= index));
+}
+
+// --- Calculation ---
+
+function performCalculation({ loanAmount, interestRate, monthlyPayment, annualExtra, extraMonth, extraPaymentCount, startDate }) {
+  const monthlyRate = interestRate / 100 / 12;
+  let remainingBalance = loanAmount;
+  let totalInterestPaid = 0;
+  let totalPrincipalPaid = 0;
+  let extraPaymentsMade = 0;
+  let monthCount = 0;
+
+  const calculations = [];
+  const currentDate = new Date(startDate);
+
+  while (remainingBalance > 0.01 && monthCount < 600) {
+    monthCount++;
+
+    const interestPayment = remainingBalance * monthlyRate;
+    let principalPayment = monthlyPayment - interestPayment;
+    let paidAmount;
+
+    if (principalPayment >= remainingBalance) {
+      principalPayment = remainingBalance;
+      paidAmount = interestPayment + principalPayment;
+    } else {
+      paidAmount = monthlyPayment;
+    }
+
+    remainingBalance -= principalPayment;
+    totalPrincipalPaid += principalPayment;
+    totalInterestPaid += interestPayment;
+
+    const dateStr = formatYearMonth(currentDate);
+
+    calculations.push({
+      date: dateStr,
+      type: 'Monthly',
+      payment: paidAmount,
+      interest: interestPayment,
+      principal: principalPayment,
+      balance: remainingBalance,
+      cumulativeInterest: totalInterestPaid,
+      cumulativePrincipal: totalPrincipalPaid,
+      percentPaid: (totalPrincipalPaid / loanAmount) * 100,
+    });
+
+    const canMakeExtra = extraPaymentCount === -1 || extraPaymentsMade < extraPaymentCount;
+    if (annualExtra > 0 && canMakeExtra && currentDate.getMonth() + 1 === extraMonth && remainingBalance > 0.01) {
+      const extraPrincipal = Math.min(annualExtra, remainingBalance);
+      remainingBalance -= extraPrincipal;
+      totalPrincipalPaid += extraPrincipal;
+      extraPaymentsMade++;
+
+      calculations.push({
+        date: dateStr,
+        type: 'Additional',
+        payment: extraPrincipal,
+        interest: 0,
+        principal: extraPrincipal,
+        balance: remainingBalance,
+        cumulativeInterest: totalInterestPaid,
+        cumulativePrincipal: totalPrincipalPaid,
+        percentPaid: (totalPrincipalPaid / loanAmount) * 100,
+      });
+    }
+
+    currentDate.setMonth(currentDate.getMonth() + 1);
+  }
+
+  return { calculations, totalInterestPaid, totalPrincipalPaid, totalMonths: monthCount, payoffDate: currentDate };
+}
+
+// --- Display ---
+
+function displayResults(withExtra, withoutExtra, loanAmount, hasExtra) {
+  const withExtraTotalPaid = loanAmount + withExtra.totalInterestPaid;
+  const withoutExtraTotalPaid = loanAmount + withoutExtra.totalInterestPaid;
+  const durationDiff = withoutExtra.totalMonths - withExtra.totalMonths;
+  const totalPaidDiff = withoutExtraTotalPaid - withExtraTotalPaid;
+  const interestDiff = withoutExtra.totalInterestPaid - withExtra.totalInterestPaid;
+
+  document.getElementById('withExtraDuration').textContent = formatDuration(withExtra.totalMonths);
+  document.getElementById('withExtraPayoffDate').textContent = formatYearMonth(withExtra.payoffDate);
+  document.getElementById('withExtraTotalPaid').textContent = formatCurrency(withExtraTotalPaid);
+  document.getElementById('withExtraInterest').textContent = formatCurrency(withExtra.totalInterestPaid);
+  document.getElementById('withExtraDurationDiff').textContent = `(${formatDuration(durationDiff)} faster)`;
+  document.getElementById('withExtraPayoffDateDiff').textContent = `(${formatDuration(durationDiff)} faster)`;
+  document.getElementById('withExtraTotalPaidDiff').textContent = `(${formatCurrency(totalPaidDiff)} less)`;
+  document.getElementById('withExtraInterestDiff').textContent = `(${formatCurrency(interestDiff)} less)`;
+
+  document.getElementById('withoutExtraDuration').textContent = formatDuration(withoutExtra.totalMonths);
+  document.getElementById('withoutExtraPayoffDate').textContent = formatYearMonth(withoutExtra.payoffDate);
+  document.getElementById('withoutExtraTotalPaid').textContent = formatCurrency(withoutExtraTotalPaid);
+  document.getElementById('withoutExtraInterest').textContent = formatCurrency(withoutExtra.totalInterestPaid);
+
+  document.getElementById('withExtraSection').style.display = hasExtra ? 'block' : 'none';
+
+  const tableBody = document.getElementById('paymentTable');
+  tableBody.innerHTML = '';
+  const paidIndex = getPaidIndex();
+  let checkboxIndex = 0;
+
+  for (const row of withExtra.calculations) {
+    const tr = document.createElement('tr');
+    tr.className = row.type === 'Additional' ? 'type-additional' : 'type-monthly';
+
+    let checkboxCell = '';
+    if (row.type === 'Monthly') {
+      const checked = paidIndex >= checkboxIndex ? 'checked' : '';
+      checkboxCell = `<input class="form-check-input paid-check-boxes" type="checkbox" data-index="${checkboxIndex}" ${checked}>`;
+      checkboxIndex++;
+    }
+
+    tr.innerHTML = `
+      <td>${checkboxCell}</td>
+      <td>${row.date}</td>
+      <td><strong>${row.type}</strong></td>
+      <td>${formatCurrency(row.payment)}</td>
+      <td>${formatCurrency(row.interest)}</td>
+      <td>${formatCurrency(row.principal)}</td>
+      <td>${formatCurrency(Math.max(0, row.balance))}</td>
+      <td>${formatCurrency(row.cumulativeInterest)}</td>
+      <td>${formatCurrency(row.cumulativePrincipal)}</td>
+      <td>${row.percentPaid.toFixed(2)}%</td>
+    `;
+    tableBody.appendChild(tr);
+  }
+
+  document.getElementById('resultsSection').classList.add('show');
+}
+
+// --- Main entry point ---
+
+function calculateMortgage() {
+  const inputs = readFormInputs();
+
+  if (!inputs.loanAmount || !inputs.interestRate || !inputs.monthlyPayment) {
     alert('Please fill in all required fields');
     return;
   }
 
-  // Show loading
   document.getElementById('loading').style.display = 'block';
   document.getElementById('resultsSection').classList.remove('show');
 
-  // Calculate in a setTimeout to let the DOM update
   setTimeout(() => {
     try {
-      const results = performCalculation(
-        loanAmount,
-        interestRate,
-        monthlyPayment,
-        annualExtra,
-        extraMonth,
-        extraPaymentCount,
-      );
-      displayResults(results, loanAmount);
+      const withExtra = performCalculation(inputs);
+      const withoutExtra = performCalculation({ ...inputs, annualExtra: 0 });
+      displayResults(withExtra, withoutExtra, inputs.loanAmount, inputs.annualExtra > 0);
     } catch (error) {
       alert('Error during calculation: ' + error.message);
     } finally {
@@ -45,285 +241,62 @@ function calculateMortgage() {
   }, 100);
 }
 
-function performCalculation(loanAmount, interestRate, monthlyPayment, annualExtra, extraMonth, extraPaymentCount) {
-  const monthlyRate = interestRate / 100 / 12;
-  let remainingBalance = loanAmount;
-  let totalInterestPaid = 0;
-  let totalPrincipalPaid = 0;
-  let extraPaymentsMade = 0;
-
-  const calculations = [];
-  const startDate = new Date(2026, 0, 1); // January 2026
-  let currentDate = new Date(startDate);
-
-  let monthCount = 0;
-
-  while (remainingBalance > 0.01 && monthCount < 600) {
-    monthCount++;
-
-    // Interest for this month
-    const interestPayment = remainingBalance * monthlyRate;
-
-    // Principal for regular payment
-    let regularPrincipalPayment = monthlyPayment - interestPayment;
-
-    // Check if loan will be paid off
-    let regularPaidAmount;
-    if (regularPrincipalPayment >= remainingBalance) {
-      regularPrincipalPayment = remainingBalance;
-      regularPaidAmount = interestPayment + regularPrincipalPayment;
-    } else {
-      regularPaidAmount = monthlyPayment;
-    }
-
-    // Update balances for monthly payment
-    remainingBalance -= regularPrincipalPayment;
-    totalPrincipalPaid += regularPrincipalPayment;
-    totalInterestPaid += interestPayment;
-
-    // Format date as YYYY-MM
-    const dateStr = currentDate.getFullYear() + '-' + String(currentDate.getMonth() + 1).padStart(2, '0');
-
-    // Add monthly payment
-    const paidPrincipalPercentage = (totalPrincipalPaid / loanAmount) * 100;
-    calculations.push({
-      date: dateStr,
-      type: 'Monthly',
-      payment: regularPaidAmount,
-      interest: interestPayment,
-      principal: regularPrincipalPayment,
-      balance: remainingBalance,
-      cumulativeInterest: totalInterestPaid,
-      cumulativePrincipal: totalPrincipalPaid,
-      percentPaid: paidPrincipalPercentage,
-    });
-
-    // Check for extra payment
-    const canMakeExtra = extraPaymentCount === -1 || extraPaymentsMade < extraPaymentCount;
-    if (currentDate.getMonth() + 1 === extraMonth && remainingBalance > 0.01 && annualExtra > 0 && canMakeExtra) {
-      const extraPrincipalPayment = Math.min(annualExtra, remainingBalance);
-
-      remainingBalance -= extraPrincipalPayment;
-      totalPrincipalPaid += extraPrincipalPayment;
-      extraPaymentsMade++;
-
-      const updatedPaidPrincipalPercentage = (totalPrincipalPaid / loanAmount) * 100;
-      calculations.push({
-        date: dateStr,
-        type: 'Additional',
-        payment: extraPrincipalPayment,
-        interest: 0,
-        principal: extraPrincipalPayment,
-        balance: remainingBalance,
-        cumulativeInterest: totalInterestPaid,
-        cumulativePrincipal: totalPrincipalPaid,
-        percentPaid: updatedPaidPrincipalPercentage,
-      });
-    }
-
-    // Move to next month
-    currentDate.setMonth(currentDate.getMonth() + 1);
-
-    if (remainingBalance <= 0.01) {
-      break;
-    }
-  }
-
-  return {
-    calculations: calculations,
-    totalInterestPaid: totalInterestPaid,
-    totalPrincipalPaid: totalPrincipalPaid,
-    totalMonths: monthCount,
-    payoffDate: currentDate,
-  };
-}
-
-function displayResults(results, loanAmount) {
-  const annualExtra = parseFloat(document.getElementById('annualExtra').value);
-  const interestRate = parseFloat(document.getElementById('interestRate').value);
-  const monthlyPayment = parseFloat(document.getElementById('monthlyPayment').value);
-
-  // Format results with extra payments
-  const withExtraYears = Math.floor(results.totalMonths / 12);
-  const withExtraMonths = results.totalMonths % 12;
-  const withExtraDateStr =
-    results.payoffDate.getFullYear() + '-' + String(results.payoffDate.getMonth() + 1).padStart(2, '0');
-
-  document.getElementById('withExtraDuration').textContent = `${withExtraYears}y ${withExtraMonths}m`;
-  const withExtraTotalPaid = loanAmount + results.totalInterestPaid;
-  const withExtraInterest = results.totalInterestPaid;
-
-  // Calculate scenario without extra payments
-  const withoutExtraResults = performCalculation(
-    loanAmount,
-    interestRate,
-    monthlyPayment,
-    0, // No extra payments
-    0, // Extra month doesn't matter
-    0, // Extra payment count doesn't matter
-  );
-
-  const withoutExtraYears = Math.floor(withoutExtraResults.totalMonths / 12);
-  const withoutExtraMonths = withoutExtraResults.totalMonths % 12;
-  const withoutExtraTotalPaid = loanAmount + withoutExtraResults.totalInterestPaid;
-  const withoutExtraInterest = withoutExtraResults.totalInterestPaid;
-  const withoutExtraDateStr =
-    withoutExtraResults.payoffDate.getFullYear() +
-    '-' +
-    String(withoutExtraResults.payoffDate.getMonth() + 1).padStart(2, '0');
-
-  const durationDiff = withoutExtraYears * 12 + withoutExtraMonths - results.totalMonths;
-  const yearsDiff = Math.floor(durationDiff / 12);
-  const monthsDiff = durationDiff % 12;
-  const totalPaidDiff = withoutExtraTotalPaid - withExtraTotalPaid;
-  const interestDiff = withoutExtraInterest - withExtraInterest;
-
-  document.getElementById('withExtraDuration').textContent = `${withExtraYears}y ${withExtraMonths}m`;
-  document.getElementById('withExtraTotalPaid').textContent = formatCurrency(withExtraTotalPaid);
-  document.getElementById('withExtraInterest').textContent = formatCurrency(withExtraInterest);
-  document.getElementById('withExtraPayoffDate').textContent = withExtraDateStr;
-
-  document.getElementById('withExtraDurationDiff').textContent = `(${yearsDiff}y ${monthsDiff}m faster)`;
-  document.getElementById('withExtraTotalPaidDiff').textContent = `(${formatCurrency(totalPaidDiff)} less)`;
-  document.getElementById('withExtraInterestDiff').textContent = `(${formatCurrency(interestDiff)} less)`;
-  document.getElementById('withExtraPayoffDateDiff').textContent = `(${yearsDiff}y ${monthsDiff}m faster)`;
-
-  document.getElementById('withoutExtraDuration').textContent = `${withoutExtraYears}y ${withoutExtraMonths}m`;
-  document.getElementById('withoutExtraTotalPaid').textContent = formatCurrency(withoutExtraTotalPaid);
-  document.getElementById('withoutExtraInterest').textContent = formatCurrency(withoutExtraInterest);
-  document.getElementById('withoutExtraPayoffDate').textContent = withoutExtraDateStr;
-
-  // Show/hide the "with extra payments" section
-  const withExtraSection = document.getElementById('withExtraSection');
-  if (annualExtra > 0) {
-    withExtraSection.style.display = 'block';
-  } else {
-    withExtraSection.style.display = 'none';
-  }
-
-  // Build table using the results with extra payments
-  const tableBody = document.getElementById('paymentTable');
-  tableBody.innerHTML = '';
-  const paidIndex = getPaidIndex();
-  let paidCheckboxIndex = 0;
-  results.calculations.forEach((row, index) => {
-    const tr = document.createElement('tr');
-    tr.className = row.type === 'Additional' ? 'type-additional' : 'type-monthly';
-    let checkbox = '';
-    if (row.type === 'Monthly') {
-      let checkboxState = paidIndex >= paidCheckboxIndex ? 'checked' : '';
-      checkbox = `<input class="form-check-input paid-check-boxes" type="checkbox" id="paid-${paidCheckboxIndex}" ${checkboxState} onClick="updatePaid(${paidCheckboxIndex})">`;
-      paidCheckboxIndex++;
-    }
-    tr.innerHTML = `
-                    <td>${checkbox}</td>
-                    <td>${row.date}</td>
-                    <td><strong>${row.type}</strong></td>
-                    <td>${formatCurrency(row.payment)}</td>
-                    <td>${formatCurrency(row.interest)}</td>
-                    <td>${formatCurrency(row.principal)}</td>
-                    <td>${formatCurrency(Math.max(0, row.balance))}</td>
-                    <td>${formatCurrency(row.cumulativeInterest)}</td>
-                    <td>${formatCurrency(row.cumulativePrincipal)}</td>
-                    <td>${row.percentPaid.toFixed(2)}%</td>
-                `;
-    tableBody.appendChild(tr);
-  });
-
-  // Show results section
-  document.getElementById('resultsSection').classList.add('show');
-}
-
-// LocalStorage functions
-function saveFormData() {
-  const formData = {
-    loanAmount: document.getElementById('loanAmount').value,
-    interestRate: document.getElementById('interestRate').value,
-    monthlyPayment: document.getElementById('monthlyPayment').value,
-    annualExtra: document.getElementById('annualExtra').value,
-    extraMonth: document.getElementById('extraMonth').value,
-    extraPaymentCount: document.getElementById('extraPaymentCount').value,
-  };
-  localStorage.setItem('mortgageFormData', JSON.stringify(formData));
-}
-
-function loadFormData() {
-  const savedData = localStorage.getItem('mortgageFormData');
-  if (savedData) {
-    const formData = JSON.parse(savedData);
-    document.getElementById('loanAmount').value = formData.loanAmount || '400000';
-    document.getElementById('interestRate').value = formData.interestRate || '3.45';
-    document.getElementById('monthlyPayment').value = formData.monthlyPayment || '2000';
-    document.getElementById('annualExtra').value = formData.annualExtra || '3000';
-    document.getElementById('extraMonth').value = formData.extraMonth || '6';
-    document.getElementById('extraPaymentCount').value = formData.extraPaymentCount || '-1';
-  }
-}
-
-function savePaidIndex(index) {
-  localStorage.setItem('paidIndex', index);
-}
-
-function getPaidIndex() {
-  const index = localStorage.getItem('paidIndex');
-  return index === null ? -1 : index;
-}
-
-function updatePaid(index) {
-  savePaidIndex(index);
-  document.querySelectorAll('.paid-check-boxes').forEach((el, i) => (el.checked = i <= index));
-}
-
-// Allow Enter key to submit
-document.addEventListener('DOMContentLoaded', function () {
-  // Load saved form data from localStorage
-  loadFormData();
-
-  const inputs = document.querySelectorAll('.form-control, .form-select');
-
-  // Add change listeners to save data on every input change
-  inputs.forEach(input => {
-    input.addEventListener('change', saveFormData);
-    input.addEventListener('input', saveFormData);
-
-    // Keep Enter key functionality
-    input.addEventListener('keypress', function (e) {
-      if (e.key === 'Enter') {
-        calculateMortgage();
-      }
-    });
-  });
-
-  // Initial calculation on page load
-  calculateMortgage();
-});
+// --- Import / Export ---
 
 function exportData() {
-  const formData = JSON.parse(localStorage.getItem('mortgageFormData'));
+  const formData = localStorage.getItem('mortgageFormData');
   const json = JSON.stringify({
-    inputs: formData,
+    inputs: JSON.parse(formData),
     paidIndex: getPaidIndex(),
   });
-  const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(json);
 
-  const exportButton = document.createElement('a');
-  exportButton.setAttribute('href', dataUri);
-  exportButton.setAttribute('download', 'mortgage-calculator-data.json');
-  document.body.appendChild(exportButton);
-  exportButton.click();
-  document.body.removeChild(exportButton);
+  const a = document.createElement('a');
+  a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(json);
+  a.download = 'mortgage-calculator-data.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
-const importFileInput = document.getElementById('importFileInput');
-importFileInput.addEventListener('change', function (event) {
-  const file = event.target.files[0];
-  if (file) {
+// --- Initialization ---
+
+document.addEventListener('DOMContentLoaded', () => {
+  const yearSelect = document.getElementById('startYear');
+  const currentYear = new Date().getFullYear();
+  for (let y = currentYear - 5; y <= currentYear + 40; y++) {
+    const opt = document.createElement('option');
+    opt.value = y;
+    opt.textContent = y;
+    if (y === 2026) opt.selected = true;
+    yearSelect.appendChild(opt);
+  }
+
+  loadFormData();
+
+  document.querySelectorAll('.form-control, .form-select').forEach(input => {
+    input.addEventListener('change', saveFormData);
+    input.addEventListener('input', saveFormData);
+    input.addEventListener('keypress', e => {
+      if (e.key === 'Enter') calculateMortgage();
+    });
+  });
+
+  // Event delegation for paid checkboxes — avoids inline onclick in innerHTML
+  document.getElementById('paymentTable').addEventListener('change', e => {
+    if (e.target.classList.contains('paid-check-boxes')) {
+      updatePaid(parseInt(e.target.dataset.index, 10));
+    }
+  });
+
+  document.getElementById('importFileInput').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
     const reader = new FileReader();
-    reader.onload = function (e) {
+    reader.onload = event => {
       try {
-        const fileContent = JSON.parse(e.target.result);
-        localStorage.setItem('mortgageFormData', JSON.stringify(fileContent.inputs));
-        savePaidIndex(fileContent.paidIndex);
+        const { inputs, paidIndex } = JSON.parse(event.target.result);
+        localStorage.setItem('mortgageFormData', JSON.stringify(inputs));
+        savePaidIndex(paidIndex);
         loadFormData();
         calculateMortgage();
       } catch (error) {
@@ -331,5 +304,7 @@ importFileInput.addEventListener('change', function (event) {
       }
     };
     reader.readAsText(file);
-  }
+  });
+
+  calculateMortgage();
 });

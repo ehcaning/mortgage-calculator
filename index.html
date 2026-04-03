@@ -66,6 +66,32 @@
             <label for="extraPaymentCount" class="form-label">Extra Payment Count (-1 = unlimited)</label>
             <input type="number" class="form-control" id="extraPaymentCount" value="-1" step="1" />
           </div>
+          <div class="col-md-6">
+            <label class="form-label">Start Date</label>
+            <div class="row g-2">
+              <div class="col-8">
+                <select class="form-select" id="startMonth">
+                  <option value="1">January</option>
+                  <option value="2">February</option>
+                  <option value="3">March</option>
+                  <option value="4">April</option>
+                  <option value="5">May</option>
+                  <option value="6">June</option>
+                  <option value="7">July</option>
+                  <option value="8">August</option>
+                  <option value="9">September</option>
+                  <option value="10">October</option>
+                  <option value="11">November</option>
+                  <option value="12">December</option>
+                </select>
+              </div>
+              <div class="col-4">
+                <select class="form-select" id="startYear">
+                  <!-- populated by JS -->
+                </select>
+              </div>
+            </div>
+          </div>
         </div>
         <button class="btn btn-primary btn-submit mt-4" onclick="calculateMortgage()">Calculate</button>
       </div>
