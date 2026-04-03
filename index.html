@@ -9,44 +9,53 @@
   </head>
   <body>
     <div class="container container-main">
-      <h1 class="mb-4">💰 Mortgage Calculator</h1>
+
+      <!-- Header -->
+      <div class="app-header">
+        <h1>🏠 Mortgage Calculator</h1>
+        <p class="subtitle">Plan your payoff, visualize every payment, save on interest.</p>
+      </div>
 
       <!-- Input Form Section -->
       <div class="form-section">
-        <h3>Loan Parameters</h3>
-        <p>
-          This page is completely offline and does not send your data to any servers. Nothing leaves your browser. Check
-          the source code on
-          <a href="https://github.com/ehcaning/mortgage-calculator">GitHub</a>.
-        </br>
-          Your data is stored in your
-          browser's <code>localstorage</code>. You can use the import/export buttons below for backing up your inputs.
-          <div class="btn-group" role="group" aria-label="Basic example">
-            <button class="btn btn-secondary" onclick="exportData()">Export</button>
-            <button class="btn btn-secondary" onclick="document.getElementById('importFileInput').click()">Import</button>
-          </div>
-        </p>
+        <div class="section-heading">
+          <span class="icon">🏦</span>
+          Loan Parameters
+        </div>
+
+        <div class="privacy-notice">
+          <span class="notice-icon">🔒</span>
+          <span>
+            Completely offline — nothing leaves your browser. Data is saved in <code>localStorage</code>.
+            View the source on <a href="https://github.com/ehcaning/mortgage-calculator" target="_blank">GitHub</a>.
+            <div class="data-actions">
+              <button class="btn-ghost" onclick="exportData()">📤 Export</button>
+              <button class="btn-ghost" onclick="document.getElementById('importFileInput').click()">📥 Import</button>
+            </div>
+          </span>
+        </div>
+
         <input type="file" id="importFileInput" style="display: none" accept=".json" />
-        <hr>
+
         <div class="row g-4">
           <div class="col-md-6">
-            <label for="loanAmount" class="form-label">Loan Amount ($)</label>
+            <label for="loanAmount" class="form-label">🏠 Loan Amount ($)</label>
             <input type="number" class="form-control" id="loanAmount" value="400000" min="1" step="1000" />
           </div>
           <div class="col-md-6">
-            <label for="interestRate" class="form-label">Interest Rate (%)</label>
+            <label for="interestRate" class="form-label">📈 Interest Rate (%)</label>
             <input type="number" class="form-control" id="interestRate" value="3.45" min="0" max="100" step="0.01" />
           </div>
           <div class="col-md-6">
-            <label for="monthlyPayment" class="form-label">Monthly Payment ($)</label>
+            <label for="monthlyPayment" class="form-label">💳 Monthly Payment ($)</label>
             <input type="number" class="form-control" id="monthlyPayment" value="2000" min="1" step="1" />
           </div>
           <div class="col-md-6">
-            <label for="annualExtra" class="form-label">Annual Extra Payment ($)</label>
+            <label for="annualExtra" class="form-label">⭐ Annual Extra Payment ($)</label>
             <input type="number" class="form-control" id="annualExtra" value="3000" min="0" step="100" />
           </div>
           <div class="col-md-6">
-            <label for="extraMonth" class="form-label">Extra Payment Month</label>
+            <label for="extraMonth" class="form-label">📅 Extra Payment Month</label>
             <select class="form-select" id="extraMonth">
               <option value="1" selected>January</option>
               <option value="2">February</option>
@@ -63,11 +72,11 @@
             </select>
           </div>
           <div class="col-md-6">
-            <label for="extraPaymentCount" class="form-label">Extra Payment Count (-1 = unlimited)</label>
+            <label for="extraPaymentCount" class="form-label">🔢 Extra Payment Count <span style="font-weight:400;text-transform:none;letter-spacing:0">(-1 = unlimited)</span></label>
             <input type="number" class="form-control" id="extraPaymentCount" value="-1" step="1" />
           </div>
           <div class="col-md-6">
-            <label class="form-label">Start Date</label>
+            <label class="form-label">🗓️ Start Date</label>
             <div class="row g-2">
               <div class="col-8">
                 <select class="form-select" id="startMonth">
@@ -93,7 +102,8 @@
             </div>
           </div>
         </div>
-        <button class="btn btn-primary btn-submit mt-4" onclick="calculateMortgage()">Calculate</button>
+
+        <button class="btn-calculate mt-4" onclick="calculateMortgage()">✨ Calculate</button>
       </div>
 
       <!-- Loading Indicator -->
@@ -101,80 +111,81 @@
         <div class="spinner-border text-primary" role="status">
           <span class="visually-hidden">Calculating...</span>
         </div>
-        <p class="mt-2">Calculating mortgage details...</p>
+        <p>Crunching the numbers…</p>
       </div>
 
       <!-- Results Section -->
       <div class="results-section" id="resultsSection">
-        <h3>Summary</h3>
 
-        <!-- With Extra Payments Row -->
-        <div id="withExtraSection" class="scenario-section" style="display: none">
-          <h5 class="scenario-title">With Extra Payments</h5>
+        <div class="results-heading">📊 Summary</div>
+
+        <!-- With Extra Payments -->
+        <div id="withExtraSection" class="scenario-section scenario-section--featured" style="display: none">
+          <div class="scenario-title">✨ With Extra Payments</div>
           <div class="row">
             <div class="col-lg-3 col-md-6">
               <div class="stat-box">
-                <div class="stat-label">Total Duration</div>
-                <div class="stat-value" id="withExtraDuration">-</div>
+                <div class="stat-label">⏱️ Total Duration</div>
+                <div class="stat-value" id="withExtraDuration">—</div>
                 <div class="stat-difference" id="withExtraDurationDiff"></div>
               </div>
             </div>
             <div class="col-lg-3 col-md-6">
               <div class="stat-box">
-                <div class="stat-label">Payoff Date</div>
-                <div class="stat-value" id="withExtraPayoffDate">-</div>
+                <div class="stat-label">📅 Payoff Date</div>
+                <div class="stat-value" id="withExtraPayoffDate">—</div>
                 <div class="stat-difference" id="withExtraPayoffDateDiff"></div>
               </div>
             </div>
             <div class="col-lg-3 col-md-6">
               <div class="stat-box">
-                <div class="stat-label">Total Paid</div>
-                <div class="stat-value" id="withExtraTotalPaid">-</div>
+                <div class="stat-label">💳 Total Paid</div>
+                <div class="stat-value" id="withExtraTotalPaid">—</div>
                 <div class="stat-difference" id="withExtraTotalPaidDiff"></div>
               </div>
             </div>
             <div class="col-lg-3 col-md-6">
               <div class="stat-box">
-                <div class="stat-label">Total Paid Interest</div>
-                <div class="stat-value" id="withExtraInterest">-</div>
+                <div class="stat-label">💸 Interest Paid</div>
+                <div class="stat-value" id="withExtraInterest">—</div>
                 <div class="stat-difference" id="withExtraInterestDiff"></div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Without Extra Payments Row -->
+        <!-- Without Extra Payments -->
         <div id="withoutExtraSection" class="scenario-section">
-          <h5 class="scenario-title">Without Extra Payments</h5>
+          <div class="scenario-title">📊 Without Extra Payments</div>
           <div class="row">
             <div class="col-lg-3 col-md-6">
               <div class="stat-box">
-                <div class="stat-label">Total Duration</div>
-                <div class="stat-value" id="withoutExtraDuration">-</div>
+                <div class="stat-label">⏱️ Total Duration</div>
+                <div class="stat-value" id="withoutExtraDuration">—</div>
               </div>
             </div>
             <div class="col-lg-3 col-md-6">
               <div class="stat-box">
-                <div class="stat-label">Payoff Date</div>
-                <div class="stat-value" id="withoutExtraPayoffDate">-</div>
+                <div class="stat-label">📅 Payoff Date</div>
+                <div class="stat-value" id="withoutExtraPayoffDate">—</div>
               </div>
             </div>
             <div class="col-lg-3 col-md-6">
               <div class="stat-box">
-                <div class="stat-label">Total Paid</div>
-                <div class="stat-value" id="withoutExtraTotalPaid">-</div>
+                <div class="stat-label">💳 Total Paid</div>
+                <div class="stat-value" id="withoutExtraTotalPaid">—</div>
               </div>
             </div>
             <div class="col-lg-3 col-md-6">
               <div class="stat-box">
-                <div class="stat-label">Total Paid Interest</div>
-                <div class="stat-value" id="withoutExtraInterest">-</div>
+                <div class="stat-label">💸 Interest Paid</div>
+                <div class="stat-value" id="withoutExtraInterest">—</div>
               </div>
             </div>
           </div>
         </div>
 
-        <h3>Detailed Payment Schedule</h3>
+        <div class="results-heading">📋 Detailed Payment Schedule</div>
         <div class="table-container">
           <table class="table table-sm mb-0">
             <thead>
@@ -186,14 +197,15 @@
                 <th>Interest</th>
                 <th>Principal</th>
                 <th>Balance</th>
-                <th>Cumulative Interest</th>
-                <th>Cumulative Principal</th>
+                <th>Cumul. Interest</th>
+                <th>Cumul. Principal</th>
                 <th>% Paid</th>
               </tr>
             </thead>
             <tbody id="paymentTable"></tbody>
           </table>
         </div>
+
       </div>
     </div>
 

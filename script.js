@@ -200,7 +200,7 @@ function displayResults(withExtra, withoutExtra, loanAmount, hasExtra) {
     tr.innerHTML = `
       <td>${checkboxCell}</td>
       <td>${row.date}</td>
-      <td><strong>${row.type}</strong></td>
+      <td><span class="badge-type ${row.type === 'Monthly' ? 'badge-monthly' : 'badge-additional'}">${row.type === 'Monthly' ? 'Monthly' : '⭐ Extra'}</span></td>
       <td>${formatCurrency(row.payment)}</td>
       <td>${formatCurrency(row.interest)}</td>
       <td>${formatCurrency(row.principal)}</td>
